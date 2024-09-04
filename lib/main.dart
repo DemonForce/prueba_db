@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:postgres/postgres.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 void main() {
   runApp(const MainApp());
@@ -12,23 +13,29 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.red,
         visualDensity: VisualDensity.adaptivePlatformDensity,
+        textTheme: GoogleFonts.pressStart2pTextTheme(
+          Theme.of(context).textTheme,
+        ),
       ),
-      home: const HomePage(),
+      home: const LoginPage(),
     );
   }
 }
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
 
   @override
-  _HomePageState createState() => _HomePageState();
+  _LoginPageState createState() => _LoginPageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _LoginPageState extends State<LoginPage> {
   late PostgreSQLConnection connection;
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _obscureText = true;
 
   @override
   void initState() {
@@ -60,25 +67,37 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> insertUser() async {
+  Future<void> _login() async {
+    final username = _usernameController.text;
+    final password = _passwordController.text;
+
     try {
-      await connection.query(
-        'INSERT INTO usuarios(username, password, nivel) VALUES (@username, @password, @nivel)',
+      final results = await connection.query(
+        'SELECT * FROM usuarios WHERE username = @username AND password = @password',
         substitutionValues: {
-          'username': 'Joaquin12',
-          'password': 'john1235',
-          'nivel': 'admin'
+          'username': username,
+          'password': password,
         },
       );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Usuario insertado correctamente')),
-        );
+
+      if (results.isNotEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Inicio de sesión exitoso')),
+          );
+          // Navigate to home page or dashboard
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Usuario o contraseña incorrectos')),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al insertar usuario: $e')),
+          SnackBar(content: Text('Error al iniciar sesión: $e')),
         );
       }
     }
@@ -86,6 +105,8 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
     connection.close().then((_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -99,27 +120,92 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mi App hola'),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              'Hola mundo!',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            OutlinedButton(
-              onPressed: insertUser,
-              style: OutlinedButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color.fromARGB(255, 56, 56, 56), Color.fromARGB(255, 41, 41, 41)],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.person_rounded,
+                    size: 200,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(height: 48),
+                  TextField(
+                    controller: _usernameController,
+                    style: GoogleFonts.pressStart2p(color: Colors.white, fontSize: 14),
+                    decoration: InputDecoration(
+                      hintText: 'Usuario',
+                      hintStyle: GoogleFonts.pressStart2p(color: Colors.white.withOpacity(0.7), fontSize: 12),
+                      prefixIcon: const Icon(Icons.person, color: Colors.white),
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.2),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: _passwordController,
+                    obscureText: _obscureText,
+                    style: GoogleFonts.pressStart2p(color: Colors.white, fontSize: 14),
+                    decoration: InputDecoration(
+                      hintText: 'Contraseña',
+                      hintStyle: GoogleFonts.pressStart2p(color: Colors.white.withOpacity(0.7), fontSize: 14),
+                      prefixIcon: const Icon(Icons.lock, color: Colors.white),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureText ? Icons.visibility : Icons.visibility_off,
+                          color: Colors.white,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscureText = !_obscureText;
+                          });
+                        },
+                      ),
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.2),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: _login,
+                    style: ElevatedButton.styleFrom(
+                      foregroundColor: const Color.fromARGB(255, 255, 255, 255),
+                      backgroundColor: const Color.fromARGB(255, 99, 97, 97),
+                      padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: Text(
+                      'Acceder',
+                      style: GoogleFonts.pressStart2p(fontSize: 13, color: Colors.white),
+                    ),
+                  ),
+                ],
               ),
-              child: const Text('Insertar Usuario'),
             ),
-          ],
+          ),
         ),
       ),
     );

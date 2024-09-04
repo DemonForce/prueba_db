@@ -9,6 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  google_fonts: ^6.2.1
   postgres: ^2.6.3  # Asegúrate de usar la versión más reciente
 
 dev_dependencies:
