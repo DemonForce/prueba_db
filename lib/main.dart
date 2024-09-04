@@ -24,6 +24,28 @@ class MainApp extends StatelessWidget {
   }
 }
 
+class AdminPage extends StatelessWidget {
+  final Map<String, dynamic> userData;
+
+  const AdminPage({super.key, required this.userData});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Nivel: ${userData['nivel']}'),
+      ),
+      body: Center(
+        child: Text(
+          'Página de Administración\nUsuario: ${userData['username']}',
+          style: GoogleFonts.pressStart2p(fontSize: 20),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+}
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -55,13 +77,13 @@ class _LoginPageState extends State<LoginPage> {
       await connection.open();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Conexión a la base de datos abierta')),
+          const SnackBar(content: Text('Conexión a la base de datos exitosa')),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al conectar: $e')),
+          SnackBar(content: Text('Error al conectar a la base de datos: $e')),
         );
       }
     }
@@ -81,11 +103,23 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       if (results.isNotEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Inicio de sesión exitoso')),
-          );
-          // Navigate to home page or dashboard
+        final user = results.first.toColumnMap();
+        if (user['nivel'] == 'admin') {
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AdminPage(userData: user),
+              ),
+            );
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Inicio de sesión exitoso')),
+            );
+            // Navega a otra página para usuarios normales si es necesario
+          }
         }
       } else {
         if (mounted) {
@@ -125,7 +159,10 @@ class _LoginPageState extends State<LoginPage> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color.fromARGB(255, 56, 56, 56), Color.fromARGB(255, 41, 41, 41)],
+            colors: [
+              Color.fromARGB(255, 56, 56, 56),
+              Color.fromARGB(255, 41, 41, 41)
+            ],
           ),
         ),
         child: SafeArea(
@@ -143,10 +180,12 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 48),
                   TextField(
                     controller: _usernameController,
-                    style: GoogleFonts.pressStart2p(color: Colors.white, fontSize: 14),
+                    style: GoogleFonts.pressStart2p(
+                        color: Colors.white, fontSize: 14),
                     decoration: InputDecoration(
                       hintText: 'Usuario',
-                      hintStyle: GoogleFonts.pressStart2p(color: Colors.white.withOpacity(0.7), fontSize: 12),
+                      hintStyle: GoogleFonts.pressStart2p(
+                          color: Colors.white.withOpacity(0.7), fontSize: 12),
                       prefixIcon: const Icon(Icons.person, color: Colors.white),
                       filled: true,
                       fillColor: Colors.white.withOpacity(0.2),
@@ -154,21 +193,26 @@ class _LoginPageState extends State<LoginPage> {
                         borderRadius: BorderRadius.circular(30),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 15, horizontal: 20),
                     ),
                   ),
                   const SizedBox(height: 20),
                   TextField(
                     controller: _passwordController,
                     obscureText: _obscureText,
-                    style: GoogleFonts.pressStart2p(color: Colors.white, fontSize: 14),
+                    style: GoogleFonts.pressStart2p(
+                        color: Colors.white, fontSize: 14),
                     decoration: InputDecoration(
                       hintText: 'Contraseña',
-                      hintStyle: GoogleFonts.pressStart2p(color: Colors.white.withOpacity(0.7), fontSize: 14),
+                      hintStyle: GoogleFonts.pressStart2p(
+                          color: Colors.white.withOpacity(0.7), fontSize: 14),
                       prefixIcon: const Icon(Icons.lock, color: Colors.white),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscureText ? Icons.visibility : Icons.visibility_off,
+                          _obscureText
+                              ? Icons.visibility
+                              : Icons.visibility_off,
                           color: Colors.white,
                         ),
                         onPressed: () {
@@ -183,7 +227,8 @@ class _LoginPageState extends State<LoginPage> {
                         borderRadius: BorderRadius.circular(30),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 15, horizontal: 20),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -192,14 +237,16 @@ class _LoginPageState extends State<LoginPage> {
                     style: ElevatedButton.styleFrom(
                       foregroundColor: const Color.fromARGB(255, 255, 255, 255),
                       backgroundColor: const Color.fromARGB(255, 99, 97, 97),
-                      padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 50, vertical: 15),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ),
                     child: Text(
                       'Acceder',
-                      style: GoogleFonts.pressStart2p(fontSize: 13, color: Colors.white),
+                      style: GoogleFonts.pressStart2p(
+                          fontSize: 13, color: Colors.white),
                     ),
                   ),
                 ],
@@ -211,3 +258,4 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
+
