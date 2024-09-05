@@ -168,7 +168,7 @@ class _LoginPageState extends State<LoginPage> {
                 children: [
                   const Icon(
                     Icons.account_balance_wallet,
-                    size: 100,
+                    size: 150,
                     color: Colors.white,
                   ),
                   const SizedBox(height: 48),
