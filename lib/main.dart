@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:postgres/postgres.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 void main() {
   runApp(const MainApp());
@@ -13,11 +12,9 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: ThemeData(
-        primarySwatch: Colors.red,
+        primarySwatch: Colors.purple,
         visualDensity: VisualDensity.adaptivePlatformDensity,
-        textTheme: GoogleFonts.pressStart2pTextTheme(
-          Theme.of(context).textTheme,
-        ),
+        scaffoldBackgroundColor: const Color(0xFF1F2937),
       ),
       home: const LoginPage(),
     );
@@ -38,7 +35,7 @@ class AdminPage extends StatelessWidget {
       body: Center(
         child: Text(
           'Página de Administración\nUsuario: ${userData['username']}',
-          style: GoogleFonts.pressStart2p(fontSize: 20),
+          style: const TextStyle(fontSize: 20, color: Colors.white),
           textAlign: TextAlign.center,
         ),
       ),
@@ -63,11 +60,11 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
     connection = PostgreSQLConnection(
-      'junction.proxy.rlwy.net', // host
-      44486, // port
-      'railway', // database name
-      username: 'postgres', // username
-      password: 'gHGXaBNPGOqpooWANcIvrNomMwLryXXr', // password
+      'junction.proxy.rlwy.net',
+      44486,
+      'railway',
+      username: 'postgres',
+      password: 'gHGXaBNPGOqpooWANcIvrNomMwLryXXr',
     );
     _openConnection();
   }
@@ -159,60 +156,50 @@ class _LoginPageState extends State<LoginPage> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color.fromARGB(255, 56, 56, 56),
-              Color.fromARGB(255, 41, 41, 41)
-            ],
+            colors: [Color(0xFF1F2937), Color(0xFF111827)],
           ),
         ),
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(24.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Icon(
-                    Icons.person_rounded,
-                    size: 200,
+                    Icons.account_balance_wallet,
+                    size: 100,
                     color: Colors.white,
                   ),
                   const SizedBox(height: 48),
                   TextField(
                     controller: _usernameController,
-                    style: GoogleFonts.pressStart2p(
-                        color: Colors.white, fontSize: 14),
+                    style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       hintText: 'Usuario',
-                      hintStyle: GoogleFonts.pressStart2p(
-                          color: Colors.white.withOpacity(0.7), fontSize: 12),
+                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
                       prefixIcon: const Icon(Icons.person, color: Colors.white),
                       filled: true,
-                      fillColor: Colors.white.withOpacity(0.2),
+                      fillColor: Colors.white.withOpacity(0.1),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(30),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(
-                          vertical: 15, horizontal: 20),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
                     ),
                   ),
                   const SizedBox(height: 20),
                   TextField(
                     controller: _passwordController,
                     obscureText: _obscureText,
-                    style: GoogleFonts.pressStart2p(
-                        color: Colors.white, fontSize: 14),
+                    style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       hintText: 'Contraseña',
-                      hintStyle: GoogleFonts.pressStart2p(
-                          color: Colors.white.withOpacity(0.7), fontSize: 14),
+                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
                       prefixIcon: const Icon(Icons.lock, color: Colors.white),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscureText
-                              ? Icons.visibility
-                              : Icons.visibility_off,
+                          _obscureText ? Icons.visibility : Icons.visibility_off,
                           color: Colors.white,
                         ),
                         onPressed: () {
@@ -222,31 +209,28 @@ class _LoginPageState extends State<LoginPage> {
                         },
                       ),
                       filled: true,
-                      fillColor: Colors.white.withOpacity(0.2),
+                      fillColor: Colors.white.withOpacity(0.1),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(30),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(
-                          vertical: 15, horizontal: 20),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 32),
                   ElevatedButton(
                     onPressed: _login,
                     style: ElevatedButton.styleFrom(
-                      foregroundColor: const Color.fromARGB(255, 255, 255, 255),
-                      backgroundColor: const Color.fromARGB(255, 99, 97, 97),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 50, vertical: 15),
+                      foregroundColor: Colors.white,
+                      backgroundColor: Colors.purple,
+                      padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ),
-                    child: Text(
+                    child: const Text(
                       'Acceder',
-                      style: GoogleFonts.pressStart2p(
-                          fontSize: 13, color: Colors.white),
+                      style: TextStyle(fontSize: 16),
                     ),
                   ),
                 ],
@@ -258,4 +242,3 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
-
