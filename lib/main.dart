@@ -10,35 +10,142 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Construye el MaterialApp con el tema y la página de inicio
     return MaterialApp(
       theme: ThemeData(
-        primarySwatch: Colors.purple, // Define el color principal
-        visualDensity: VisualDensity.adaptivePlatformDensity, // Adapta la densidad visual a la plataforma
-        scaffoldBackgroundColor: const Color(0xFF1F2937), // Establece el color de fondo del scaffold
+        primarySwatch: Colors.yellow,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+        scaffoldBackgroundColor: const Color(0xFF000000),
       ),
-      home: const LoginPage(), // Define la página de inicio
+      home: const LoginPage(),
     );
   }
 }
 
-class AdminPage extends StatelessWidget {
-  final Map<String, dynamic> userData; // Datos del usuario
+class AdminPage extends StatefulWidget {
+  final Map<String, dynamic> userData;
 
   const AdminPage({super.key, required this.userData});
 
   @override
+  _AdminPageState createState() => _AdminPageState();
+}
+
+class _AdminPageState extends State<AdminPage> {
+  final List<String> _todoItems = [];
+
+  void _addTodoItem(String task) {
+    if (task.isNotEmpty) {
+      setState(() => _todoItems.add(task));
+    }
+  }
+
+  void _removeTodoItem(int index) {
+    setState(() => _todoItems.removeAt(index));
+  }
+
+  Widget _buildTodoList() {
+    return ListView.builder(
+      itemCount: _todoItems.length,
+      itemBuilder: (context, index) {
+        return _buildTodoItem(_todoItems[index], index);
+      },
+    );
+  }
+
+  Widget _buildTodoItem(String todoText, int index) {
+    return ListTile(
+      title: Text(todoText, style: const TextStyle(color: Colors.white)),
+      trailing: IconButton(
+        icon: const Icon(Icons.delete, color: Colors.white),
+        onPressed: () => _removeTodoItem(index),
+      ),
+    );
+  }
+
+  void _pushAddTodoScreen() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) {
+          return Scaffold(
+            appBar: AppBar(
+              backgroundColor: Colors.black,
+              iconTheme: const IconThemeData(
+                color: Colors.white,
+              ),
+              title: const Text(
+                'Agregar nueva tarea',
+                style: TextStyle(
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            body: TextField(
+              autofocus: true,
+              onSubmitted: (val) {
+                _addTodoItem(val);
+                Navigator.pop(context);
+              },
+              decoration: const InputDecoration(
+                hintText: 'Ingresa la nueva tarea',
+                hintStyle: TextStyle(
+                  color: Colors.grey, // Cambia el color del hint a gris
+                ),
+                contentPadding: EdgeInsets.all(16.0),
+              ),
+              style: const TextStyle(
+                color: Colors.white, // Establece el color del texto a blanco
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Construye la página de administración
     return Scaffold(
       appBar: AppBar(
-        title: Text('Nivel: ${userData['nivel']}'), // Muestra el nivel del usuario
+        backgroundColor: Colors.black, // Establece el fondo del AppBar a negro
+        centerTitle: true, // Centra el título en el AppBar
+        title: Text(
+          'Nivel: ${widget.userData['nivel']}',
+          style: const TextStyle(
+            color: Colors.white, // Cambia el color del texto a blanco
+          ),
+        ),
       ),
-      body: Center(
-        child: Text(
-          'Página de Administración\nUsuario: ${userData['username']}', // Muestra el nombre del usuario
-          style: const TextStyle(fontSize: 20, color: Colors.white),
-          textAlign: TextAlign.center,
+      body: Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Text(
+              'Lista de Tareas',
+              style: TextStyle(
+                fontSize: 24,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Expanded(
+            child: _buildTodoList(),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _pushAddTodoScreen,
+        tooltip: 'Agregar tarea',
+        backgroundColor: Colors.black, // Cambia el color de fondo del botón
+        shape: const CircleBorder(
+          side: BorderSide(
+            color: Colors.white, // Establece el color del contorno a blanco
+            width: 3.0, // Ajusta el grosor del contorno aquí
+          ),
+        ),
+        child: const Icon(
+          Icons.add,
+          color: Colors.white, // Cambia el color del icono a blanco
         ),
       ),
     );
@@ -49,19 +156,18 @@ class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
   @override
-  _LoginPageState createState() => _LoginPageState(); // Crea el estado de la página de inicio de sesión
+  _LoginPageState createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
-  late PostgreSQLConnection connection; // Conexión a la base de datos PostgreSQL
-  final _usernameController = TextEditingController(); // Controlador para el campo de usuario
-  final _passwordController = TextEditingController(); // Controlador para el campo de contraseña
-  bool _obscureText = true; // Variable para ocultar o mostrar la contraseña
+  late PostgreSQLConnection connection;
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _obscureText = true;
 
   @override
   void initState() {
     super.initState();
-    // Configura la conexión a la base de datos PostgreSQL
     connection = PostgreSQLConnection(
       'junction.proxy.rlwy.net',
       44486,
@@ -69,32 +175,31 @@ class _LoginPageState extends State<LoginPage> {
       username: 'postgres',
       password: 'gHGXaBNPGOqpooWANcIvrNomMwLryXXr',
     );
-    _openConnection(); // Abre la conexión a la base de datos
+    _openConnection();
   }
 
   Future<void> _openConnection() async {
     try {
-      await connection.open(); // Intenta abrir la conexión
+      await connection.open();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Conexión a la base de datos exitosa')), // Notificación de éxito
+          const SnackBar(content: Text('Conexión a la base de datos exitosa')),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al conectar a la base de datos: $e')), // Notificación de error
+          SnackBar(content: Text('Error al conectar a la base de datos: $e')),
         );
       }
     }
   }
 
   Future<void> _login() async {
-    final username = _usernameController.text; // Obtiene el nombre de usuario
-    final password = _passwordController.text; // Obtiene la contraseña
+    final username = _usernameController.text;
+    final password = _passwordController.text;
 
     try {
-      // Consulta para verificar si el usuario existe en la base de datos
       final results = await connection.query(
         'SELECT * FROM usuarios WHERE username = @username AND password = @password',
         substitutionValues: {
@@ -104,35 +209,34 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       if (results.isNotEmpty) {
-        final user = results.first.toColumnMap(); // Obtiene los datos del primer resultado
+        final user = results.first.toColumnMap();
         if (user['nivel'] == 'admin') {
           if (mounted) {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => AdminPage(userData: user), // Navega a la página de administración si el usuario es admin
+                builder: (context) => AdminPage(userData: user),
               ),
             );
           }
         } else {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Inicio de sesión exitoso')), // Notificación de inicio de sesión exitoso
+              const SnackBar(content: Text('Inicio de sesión exitoso')),
             );
-            // Navega a otra página para usuarios normales si es necesario
           }
         }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Usuario o contraseña incorrectos')), // Notificación de error en credenciales
+            const SnackBar(content: Text('Usuario o contraseña incorrectos')),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al iniciar sesión: $e')), // Notificación de error en el inicio de sesión
+          SnackBar(content: Text('Error al iniciar sesión: $e')),
         );
       }
     }
@@ -140,13 +244,12 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   void dispose() {
-    // Limpia los controladores y cierra la conexión a la base de datos
     _usernameController.dispose();
     _passwordController.dispose();
     connection.close().then((_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Conexión a la base de datos cerrada')), // Notificación de cierre de conexión
+          const SnackBar(content: Text('Conexión a la base de datos cerrada')),
         );
       }
     });
@@ -155,14 +258,13 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Construye la interfaz de la página de inicio de sesión
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF1F2937), Color(0xFF111827)], // Fondo con gradiente
+            colors: [Color(0xFF1F2937), Color(0xFF111827)],
           ),
         ),
         child: SafeArea(
@@ -172,23 +274,22 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Reemplaza el icono por una imagen de los assets
                   Image.asset(
-                    'assets/images/user.png',
-                    height: 200,
+                    'assets/images/user.jpg',
+                    height: 140,
                   ),
-                  const Text(
-                      'bitcoder',
-                      style: TextStyle(color: Colors.white, fontSize: 15),
-                    ),
+                  /* const Text(
+                    'Inicio',
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ), */
                   const SizedBox(height: 30),
-                  // Campo de texto para el nombre de usuario
                   TextField(
                     controller: _usernameController,
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       hintText: 'Usuario',
-                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+                      hintStyle:
+                          TextStyle(color: Colors.white.withOpacity(0.7)),
                       prefixIcon: const Icon(Icons.person, color: Colors.white),
                       filled: true,
                       fillColor: Colors.white.withOpacity(0.1),
@@ -196,27 +297,30 @@ class _LoginPageState extends State<LoginPage> {
                         borderRadius: BorderRadius.circular(30),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 15, horizontal: 20),
                     ),
                   ),
                   const SizedBox(height: 20),
-                  // Campo de texto para la contraseña
                   TextField(
                     controller: _passwordController,
                     obscureText: _obscureText,
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       hintText: 'Contraseña',
-                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+                      hintStyle:
+                          TextStyle(color: Colors.white.withOpacity(0.7)),
                       prefixIcon: const Icon(Icons.lock, color: Colors.white),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscureText ? Icons.visibility : Icons.visibility_off,
+                          _obscureText
+                              ? Icons.visibility
+                              : Icons.visibility_off,
                           color: Colors.white,
                         ),
                         onPressed: () {
                           setState(() {
-                            _obscureText = !_obscureText; // Alterna la visibilidad de la contraseña
+                            _obscureText = !_obscureText;
                           });
                         },
                       ),
@@ -226,17 +330,18 @@ class _LoginPageState extends State<LoginPage> {
                         borderRadius: BorderRadius.circular(30),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 15, horizontal: 20),
                     ),
                   ),
                   const SizedBox(height: 32),
-                  // Botón para iniciar sesión
                   ElevatedButton(
                     onPressed: _login,
                     style: ElevatedButton.styleFrom(
                       foregroundColor: Colors.white,
-                      backgroundColor: Colors.purple, // Color del botón
-                      padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                      backgroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 50, vertical: 15),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),
