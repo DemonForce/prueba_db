@@ -1,6 +1,6 @@
 name: prueba
 description: "A new Flutter project."
-publish_to: 'none'
+publish_to: "none"
 version: 0.1.0
 
 environment:
@@ -10,7 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   google_fonts: ^6.2.1
-  postgres: ^2.6.3  # Asegúrate de usar la versión más reciente
+  postgres: ^2.6.3 # Asegúrate de usar la versión más reciente
 
 dev_dependencies:
   flutter_test:
@@ -20,5 +20,5 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/images/user.png
-    - assets/images/user.jpg
+    - assets/images/user2.jpg
+    - assets/images/user3.jpg

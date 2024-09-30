@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:postgres/postgres.dart';
 
 void main() {
-  runApp(const MainApp());
+  runApp(DatabaseProvider(child: const MainApp()));
 }
 
 class MainApp extends StatelessWidget {
@@ -12,12 +12,77 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: ThemeData(
-        primarySwatch: Colors.yellow,
+        primarySwatch: Colors.purple,
         visualDensity: VisualDensity.adaptivePlatformDensity,
         scaffoldBackgroundColor: const Color(0xFF000000),
       ),
       home: const LoginPage(),
     );
+  }
+}
+
+class DatabaseProvider extends StatefulWidget {
+  final Widget child;
+
+  const DatabaseProvider({super.key, required this.child});
+
+  @override
+  _DatabaseProviderState createState() => _DatabaseProviderState();
+
+  static _DatabaseProviderState of(BuildContext context) {
+    final providerState =
+        context.findAncestorStateOfType<_DatabaseProviderState>();
+    if (providerState == null) {
+      throw Exception('No se encontró DatabaseProvider en el contexto');
+    }
+    return providerState;
+  }
+}
+
+class _DatabaseProviderState extends State<DatabaseProvider> {
+  late PostgreSQLConnection connection;
+  bool isConnected = false;
+
+  @override
+  void initState() {
+    super.initState();
+    connection = PostgreSQLConnection(
+      'junction.proxy.rlwy.net',
+      44486,
+      'railway',
+      username: 'postgres',
+      password: 'gHGXaBNPGOqpooWANcIvrNomMwLryXXr',
+    );
+    _openConnection();
+  }
+
+  Future<void> _openConnection() async {
+    try {
+      await connection.open();
+      setState(() {
+        isConnected = true;
+      });
+      print('Conexión a la base de datos exitosa');
+    } catch (e) {
+      print('Error al conectar a la base de datos: $e');
+    }
+  }
+
+  Future<void> ensureConnectionOpen() async {
+    if (connection.isClosed) {
+      await _openConnection();
+    }
+  }
+
+  @override
+  void dispose() {
+    connection.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.child;
   }
 }
 
@@ -31,23 +96,111 @@ class AdminPage extends StatefulWidget {
 }
 
 class _AdminPageState extends State<AdminPage> {
-  final List<String> _todoItems = [];
+  final List<Map<String, dynamic>> _todoItems = [];
+
+  @override
+  void initState() {
+    super.initState();
+    // Usar addPostFrameCallback para asegurar que el contexto esté disponible
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadUserTasks();
+    });
+  }
+
+  Future<void> _loadUserTasks() async {
+    try {
+      final dbProvider = DatabaseProvider.of(context);
+      await dbProvider.ensureConnectionOpen();
+      final results = await dbProvider.connection.query(
+        'SELECT id, descripcion FROM tareas WHERE usuario_id = @usuario_id',
+        substitutionValues: {'usuario_id': widget.userData['id']},
+      );
+
+      setState(() {
+        _todoItems.clear();
+        _todoItems.addAll(results.map((row) => {
+              'id': row[0],
+              'descripcion': row[1],
+            }));
+      });
+    } catch (e) {
+      _showErrorSnackBar('Error al cargar tareas: $e');
+    }
+  }
 
   void _addTodoItem(String task) {
     if (task.isNotEmpty) {
-      setState(() => _todoItems.add(task));
+      _saveTaskToDatabase(task);
+    }
+  }
+
+  Future<void> _saveTaskToDatabase(String task) async {
+    try {
+      final dbProvider = DatabaseProvider.of(context);
+      await dbProvider.ensureConnectionOpen();
+      final result = await dbProvider.connection.query(
+        'INSERT INTO tareas (usuario_id, descripcion, completada) VALUES (@usuario_id, @descripcion, @completada) RETURNING id',
+        substitutionValues: {
+          'usuario_id': widget.userData['id'],
+          'descripcion': task,
+          'completada': false,
+        },
+      );
+      final newTaskId = result.first[0];
+      setState(() {
+        _todoItems.add({'id': newTaskId, 'descripcion': task});
+      });
+      _showSuccessSnackBar('Tarea guardada exitosamente');
+    } catch (e) {
+      _showErrorSnackBar('Error al guardar tarea: $e');
     }
   }
 
   void _removeTodoItem(int index) {
-    setState(() => _todoItems.removeAt(index));
+    if (index >= 0 && index < _todoItems.length) {
+      final taskId = _todoItems[index]['id'];
+      _deleteTaskFromDatabase(taskId, index);
+    }
+  }
+
+  Future<void> _deleteTaskFromDatabase(int taskId, int index) async {
+    try {
+      final dbProvider = DatabaseProvider.of(context);
+      await dbProvider.ensureConnectionOpen();
+      await dbProvider.connection.query(
+        'DELETE FROM tareas WHERE id = @id',
+        substitutionValues: {'id': taskId},
+      );
+      setState(() {
+        _todoItems.removeAt(index);
+      });
+      _showSuccessSnackBar('Tarea eliminada exitosamente');
+    } catch (e) {
+      _showErrorSnackBar('Error al eliminar tarea: $e');
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  void _showSuccessSnackBar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: Colors.green),
+      );
+    }
   }
 
   Widget _buildTodoList() {
     return ListView.builder(
       itemCount: _todoItems.length,
       itemBuilder: (context, index) {
-        return _buildTodoItem(_todoItems[index], index);
+        return _buildTodoItem(_todoItems[index]['descripcion'], index);
       },
     );
   }
@@ -66,6 +219,7 @@ class _AdminPageState extends State<AdminPage> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) {
+          String newTask = '';
           return Scaffold(
             appBar: AppBar(
               backgroundColor: Colors.black,
@@ -79,22 +233,32 @@ class _AdminPageState extends State<AdminPage> {
                 ),
               ),
             ),
-            body: TextField(
-              autofocus: true,
-              onSubmitted: (val) {
-                _addTodoItem(val);
+            body: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: TextField(
+                autofocus: true,
+                onChanged: (val) {
+                  newTask = val;
+                },
+                decoration: const InputDecoration(
+                  hintText: 'Ingresa la nueva tarea',
+                  hintStyle: TextStyle(
+                    color: Colors.grey,
+                  ),
+                  contentPadding: EdgeInsets.all(16.0),
+                ),
+                style: const TextStyle(
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            floatingActionButton: FloatingActionButton(
+              onPressed: () {
+                _addTodoItem(newTask);
                 Navigator.pop(context);
               },
-              decoration: const InputDecoration(
-                hintText: 'Ingresa la nueva tarea',
-                hintStyle: TextStyle(
-                  color: Colors.grey, // Cambia el color del hint a gris
-                ),
-                contentPadding: EdgeInsets.all(16.0),
-              ),
-              style: const TextStyle(
-                color: Colors.white, // Establece el color del texto a blanco
-              ),
+              backgroundColor: Colors.black,
+              child: const Icon(Icons.check, color: Colors.white),
             ),
           );
         },
@@ -106,12 +270,12 @@ class _AdminPageState extends State<AdminPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.black, // Establece el fondo del AppBar a negro
-        centerTitle: true, // Centra el título en el AppBar
+        backgroundColor: Colors.black,
+        centerTitle: true,
         title: Text(
           'Nivel: ${widget.userData['nivel']}',
           style: const TextStyle(
-            color: Colors.white, // Cambia el color del texto a blanco
+            color: Colors.white,
           ),
         ),
       ),
@@ -136,16 +300,16 @@ class _AdminPageState extends State<AdminPage> {
       floatingActionButton: FloatingActionButton(
         onPressed: _pushAddTodoScreen,
         tooltip: 'Agregar tarea',
-        backgroundColor: Colors.black, // Cambia el color de fondo del botón
+        backgroundColor: Colors.black,
         shape: const CircleBorder(
           side: BorderSide(
-            color: Colors.white, // Establece el color del contorno a blanco
-            width: 3.0, // Ajusta el grosor del contorno aquí
+            color: Colors.white,
+            width: 3.0,
           ),
         ),
         child: const Icon(
           Icons.add,
-          color: Colors.white, // Cambia el color del icono a blanco
+          color: Colors.white,
         ),
       ),
     );
@@ -160,47 +324,18 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  late PostgreSQLConnection connection;
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscureText = true;
-
-  @override
-  void initState() {
-    super.initState();
-    connection = PostgreSQLConnection(
-      'junction.proxy.rlwy.net',
-      44486,
-      'railway',
-      username: 'postgres',
-      password: 'gHGXaBNPGOqpooWANcIvrNomMwLryXXr',
-    );
-    _openConnection();
-  }
-
-  Future<void> _openConnection() async {
-    try {
-      await connection.open();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Conexión a la base de datos exitosa')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al conectar a la base de datos: $e')),
-        );
-      }
-    }
-  }
 
   Future<void> _login() async {
     final username = _usernameController.text;
     final password = _passwordController.text;
 
     try {
-      final results = await connection.query(
+      final dbProvider = DatabaseProvider.of(context);
+      await dbProvider.ensureConnectionOpen();
+      final results = await dbProvider.connection.query(
         'SELECT * FROM usuarios WHERE username = @username AND password = @password',
         substitutionValues: {
           'username': username,
@@ -211,34 +346,36 @@ class _LoginPageState extends State<LoginPage> {
       if (results.isNotEmpty) {
         final user = results.first.toColumnMap();
         if (user['nivel'] == 'admin') {
-          if (mounted) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => AdminPage(userData: user),
-              ),
-            );
-          }
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AdminPage(userData: user),
+            ),
+          );
         } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Inicio de sesión exitoso')),
-            );
-          }
+          _showSuccessSnackBar('Inicio de sesión exitoso');
         }
       } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Usuario o contraseña incorrectos')),
-          );
-        }
+        _showErrorSnackBar('Usuario o contraseña incorrectos');
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al iniciar sesión: $e')),
-        );
-      }
+      _showErrorSnackBar('Error al iniciar sesión: $e');
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  void _showSuccessSnackBar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: Colors.green),
+      );
     }
   }
 
@@ -246,13 +383,6 @@ class _LoginPageState extends State<LoginPage> {
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
-    connection.close().then((_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Conexión a la base de datos cerrada')),
-        );
-      }
-    });
     super.dispose();
   }
 
@@ -261,11 +391,7 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF1F2937), Color(0xFF111827)],
-          ),
+          color: Colors.black, // Fondo negro
         ),
         child: SafeArea(
           child: Center(
@@ -274,14 +400,11 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  // Asegúrate de que la imagen exista o reemplázala por una disponible
                   Image.asset(
-                    'assets/images/user.jpg',
-                    height: 140,
+                    'assets/images/user2.jpg',
+                    height: 170,
                   ),
-                  /* const Text(
-                    'Inicio',
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                  ), */
                   const SizedBox(height: 30),
                   TextField(
                     controller: _usernameController,
@@ -290,7 +413,8 @@ class _LoginPageState extends State<LoginPage> {
                       hintText: 'Usuario',
                       hintStyle:
                           TextStyle(color: Colors.white.withOpacity(0.7)),
-                      prefixIcon: const Icon(Icons.person, color: Colors.white),
+                      prefixIcon:
+                          const Icon(Icons.person, color: Colors.white),
                       filled: true,
                       fillColor: Colors.white.withOpacity(0.1),
                       border: OutlineInputBorder(
@@ -339,7 +463,7 @@ class _LoginPageState extends State<LoginPage> {
                     onPressed: _login,
                     style: ElevatedButton.styleFrom(
                       foregroundColor: Colors.white,
-                      backgroundColor: Colors.black,
+                      backgroundColor: const Color(0xFF242424),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 50, vertical: 15),
                       shape: RoundedRectangleBorder(

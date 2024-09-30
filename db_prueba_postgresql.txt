@@ -11,5 +11,17 @@ CREATE TABLE usuarios (
 
 -- Volcado de datos para la tabla usuarios
 INSERT INTO usuarios (id, username, password, nivel) VALUES
-(1, 'jaime', '1234', 'admin'),
-(2, 'neo', '4321', 'admin');
+(1, 'jq', '123', 'admin'),
+
+DROP TABLE IF EXISTS tareas;
+CREATE TABLE tareas (
+  id SERIAL PRIMARY KEY,
+  usuario_id INTEGER REFERENCES usuarios(id) ON DELETE CASCADE, -- Relacionar con la tabla usuarios
+  descripcion TEXT NOT NULL,
+  fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Fecha y hora de creación
+  fecha_completada TIMESTAMP, -- Fecha y hora de completada (puede ser NULL inicialmente)
+  completada BOOLEAN DEFAULT FALSE -- Indicar si la tarea ha sido completada o no
+);
+
+INSERT INTO tareas (usuario_id, descripcion, fecha_completada, completada)
+VALUES (1, 'Terminar el informe mensual', NULL, FALSE);
