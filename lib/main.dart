@@ -101,7 +101,6 @@ class _AdminPageState extends State<AdminPage> {
   @override
   void initState() {
     super.initState();
-    // Usar addPostFrameCallback para asegurar que el contexto esté disponible
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadUserTasks();
     });
@@ -112,7 +111,7 @@ class _AdminPageState extends State<AdminPage> {
       final dbProvider = DatabaseProvider.of(context);
       await dbProvider.ensureConnectionOpen();
       final results = await dbProvider.connection.query(
-        'SELECT id, descripcion FROM tareas WHERE usuario_id = @usuario_id',
+        'SELECT id, descripcion, completada, fecha_completada FROM tareas WHERE usuario_id = @usuario_id',
         substitutionValues: {'usuario_id': widget.userData['id']},
       );
 
@@ -121,6 +120,8 @@ class _AdminPageState extends State<AdminPage> {
         _todoItems.addAll(results.map((row) => {
               'id': row[0],
               'descripcion': row[1],
+              'completada': row[2],
+              'fecha_completada': row[3], // Puede ser null
             }));
       });
     } catch (e) {
@@ -148,7 +149,12 @@ class _AdminPageState extends State<AdminPage> {
       );
       final newTaskId = result.first[0];
       setState(() {
-        _todoItems.add({'id': newTaskId, 'descripcion': task});
+        _todoItems.add({
+          'id': newTaskId,
+          'descripcion': task,
+          'completada': false,
+          'fecha_completada': null,
+        });
       });
       _showSuccessSnackBar('Tarea guardada exitosamente');
     } catch (e) {
@@ -180,6 +186,47 @@ class _AdminPageState extends State<AdminPage> {
     }
   }
 
+  void _toggleTaskCompletion(int index) {
+    if (index >= 0 && index < _todoItems.length) {
+      final taskId = _todoItems[index]['id'];
+      final isCurrentlyCompleted = _todoItems[index]['completada'] as bool;
+      final newCompletionStatus = !isCurrentlyCompleted;
+      _updateTaskCompletionInDatabase(taskId, newCompletionStatus, index);
+    }
+  }
+
+  Future<void> _updateTaskCompletionInDatabase(int taskId, bool isCompleted, int index) async {
+    try {
+      final dbProvider = DatabaseProvider.of(context);
+      await dbProvider.ensureConnectionOpen();
+      if (isCompleted) {
+        // Marcar tarea como completada y actualizar fecha_completada al timestamp actual
+        final result = await dbProvider.connection.query(
+          'UPDATE tareas SET completada = @completada, fecha_completada = NOW() WHERE id = @id RETURNING fecha_completada',
+          substitutionValues: {'completada': isCompleted, 'id': taskId},
+        );
+        final fechaCompletada = result.first[0];
+        setState(() {
+          _todoItems[index]['completada'] = isCompleted;
+          _todoItems[index]['fecha_completada'] = fechaCompletada;
+        });
+      } else {
+        // Marcar tarea como no completada y establecer fecha_completada a NULL
+        await dbProvider.connection.query(
+          'UPDATE tareas SET completada = @completada, fecha_completada = NULL WHERE id = @id',
+          substitutionValues: {'completada': isCompleted, 'id': taskId},
+        );
+        setState(() {
+          _todoItems[index]['completada'] = isCompleted;
+          _todoItems[index]['fecha_completada'] = null;
+        });
+      }
+      _showSuccessSnackBar('Tarea actualizada exitosamente');
+    } catch (e) {
+      _showErrorSnackBar('Error al actualizar tarea: $e');
+    }
+  }
+
   void _showErrorSnackBar(String message) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -200,17 +247,43 @@ class _AdminPageState extends State<AdminPage> {
     return ListView.builder(
       itemCount: _todoItems.length,
       itemBuilder: (context, index) {
-        return _buildTodoItem(_todoItems[index]['descripcion'], index);
+        return _buildTodoItem(_todoItems[index], index);
       },
     );
   }
 
-  Widget _buildTodoItem(String todoText, int index) {
+  Widget _buildTodoItem(Map<String, dynamic> todoItem, int index) {
+    final isCompleted = todoItem['completada'] as bool;
+    final fechaCompletada = todoItem['fecha_completada'] as DateTime?;
     return ListTile(
-      title: Text(todoText, style: const TextStyle(color: Colors.white)),
-      trailing: IconButton(
-        icon: const Icon(Icons.delete, color: Colors.white),
-        onPressed: () => _removeTodoItem(index),
+      title: Text(
+        todoItem['descripcion'],
+        style: TextStyle(
+          color: Colors.white,
+          decoration: isCompleted ? TextDecoration.lineThrough : TextDecoration.none,
+        ),
+      ),
+      subtitle: isCompleted && fechaCompletada != null
+          ? Text(
+              'Completada el ${fechaCompletada.toLocal().toString().split('.')[0]}',
+              style: const TextStyle(color: Colors.grey),
+            )
+          : null,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: Icon(
+              isCompleted ? Icons.check_circle : Icons.check_circle_outline,
+              color: Colors.white,
+            ),
+            onPressed: () => _toggleTaskCompletion(index),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete, color: Colors.white),
+            onPressed: () => _removeTodoItem(index),
+          ),
+        ],
       ),
     );
   }
@@ -413,8 +486,7 @@ class _LoginPageState extends State<LoginPage> {
                       hintText: 'Usuario',
                       hintStyle:
                           TextStyle(color: Colors.white.withOpacity(0.7)),
-                      prefixIcon:
-                          const Icon(Icons.person, color: Colors.white),
+                      prefixIcon: const Icon(Icons.person, color: Colors.white),
                       filled: true,
                       fillColor: Colors.white.withOpacity(0.1),
                       border: OutlineInputBorder(
