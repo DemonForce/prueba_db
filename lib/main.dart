@@ -195,7 +195,8 @@ class _AdminPageState extends State<AdminPage> {
     }
   }
 
-  Future<void> _updateTaskCompletionInDatabase(int taskId, bool isCompleted, int index) async {
+  Future<void> _updateTaskCompletionInDatabase(
+      int taskId, bool isCompleted, int index) async {
     try {
       final dbProvider = DatabaseProvider.of(context);
       await dbProvider.ensureConnectionOpen();
@@ -260,7 +261,8 @@ class _AdminPageState extends State<AdminPage> {
         todoItem['descripcion'],
         style: TextStyle(
           color: Colors.white,
-          decoration: isCompleted ? TextDecoration.lineThrough : TextDecoration.none,
+          decoration:
+              isCompleted ? TextDecoration.lineThrough : TextDecoration.none,
         ),
       ),
       subtitle: isCompleted && fechaCompletada != null
@@ -273,15 +275,15 @@ class _AdminPageState extends State<AdminPage> {
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
+            icon: const Icon(Icons.delete, color: Colors.white),
+            onPressed: () => _removeTodoItem(index),
+          ),
+          IconButton(
             icon: Icon(
-              isCompleted ? Icons.check_circle : Icons.check_circle_outline,
+              isCompleted ? Icons.check_circle : Icons.circle_outlined,
               color: Colors.white,
             ),
             onPressed: () => _toggleTaskCompletion(index),
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete, color: Colors.white),
-            onPressed: () => _removeTodoItem(index),
           ),
         ],
       ),
