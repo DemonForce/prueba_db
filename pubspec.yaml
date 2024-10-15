@@ -1,21 +1,21 @@
-name: prueba
+name: login
 description: "A new Flutter project."
 publish_to: "none"
 version: 0.1.0
 
 environment:
-  sdk: ^3.5.1
+  sdk: '>=3.5.1 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  google_fonts: ^6.2.1
-  postgres: ^2.6.3 # Asegúrate de usar la versión más reciente
+  http: ^1.2.2
+  google_fonts: ^6.1.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0
+  flutter_lints: ^3.0.1
 
 flutter:
   uses-material-design: true
