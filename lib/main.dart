@@ -374,7 +374,7 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          color: Colors.black, // Fondo negro
+          color: Color.fromARGB(255, 30, 31, 36), // Fondo negro
         ),
         child: SafeArea(
           child: Center(
@@ -385,8 +385,8 @@ class _LoginPageState extends State<LoginPage> {
                 children: [
                   // Asegúrate de que la imagen exista o reemplázala por una disponible
                   Image.asset(
-                    'assets/images/user2.jpg',
-                    height: 170,
+                    'assets/images/user4.jpg',
+                    height: 190,
                   ),
                   const SizedBox(height: 30),
                   TextField(
@@ -446,8 +446,8 @@ class _LoginPageState extends State<LoginPage> {
                   ElevatedButton(
                     onPressed: _login,
                     style: ElevatedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      backgroundColor: const Color(0xFF242424),
+                      foregroundColor: const Color.fromARGB(255, 255, 255, 255),
+                      backgroundColor: const Color.fromARGB(255, 71, 72, 77),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 50, vertical: 15),
                       shape: RoundedRectangleBorder(
@@ -456,7 +456,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     child: const Text(
                       'Acceder',
-                      style: TextStyle(fontSize: 16),
+                      style: TextStyle(fontSize: 17),
                     ),
                   ),
                 ],
