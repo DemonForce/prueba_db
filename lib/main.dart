@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:postgres/postgres.dart';
+import 'api_service.dart';
 
 void main() {
-  runApp(DatabaseProvider(child: const MainApp()));
+  runApp(const MainApp());
 }
 
 class MainApp extends StatelessWidget {
@@ -21,71 +21,6 @@ class MainApp extends StatelessWidget {
   }
 }
 
-class DatabaseProvider extends StatefulWidget {
-  final Widget child;
-
-  const DatabaseProvider({super.key, required this.child});
-
-  @override
-  _DatabaseProviderState createState() => _DatabaseProviderState();
-
-  static _DatabaseProviderState of(BuildContext context) {
-    final providerState =
-        context.findAncestorStateOfType<_DatabaseProviderState>();
-    if (providerState == null) {
-      throw Exception('No se encontró DatabaseProvider en el contexto');
-    }
-    return providerState;
-  }
-}
-
-class _DatabaseProviderState extends State<DatabaseProvider> {
-  late PostgreSQLConnection connection;
-  bool isConnected = false;
-
-  @override
-  void initState() {
-    super.initState();
-    connection = PostgreSQLConnection(
-      'junction.proxy.rlwy.net',
-      44486,
-      'railway',
-      username: 'postgres',
-      password: 'gHGXaBNPGOqpooWANcIvrNomMwLryXXr',
-    );
-    _openConnection();
-  }
-
-  Future<void> _openConnection() async {
-    try {
-      await connection.open();
-      setState(() {
-        isConnected = true;
-      });
-      print('Conexión a la base de datos exitosa');
-    } catch (e) {
-      print('Error al conectar a la base de datos: $e');
-    }
-  }
-
-  Future<void> ensureConnectionOpen() async {
-    if (connection.isClosed) {
-      await _openConnection();
-    }
-  }
-
-  @override
-  void dispose() {
-    connection.close();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return widget.child;
-  }
-}
-
 class AdminPage extends StatefulWidget {
   final Map<String, dynamic> userData;
 
@@ -97,33 +32,25 @@ class AdminPage extends StatefulWidget {
 
 class _AdminPageState extends State<AdminPage> {
   final List<Map<String, dynamic>> _todoItems = [];
+  final ApiService apiService = ApiService();
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadUserTasks();
-    });
+    _loadUserTasks();
   }
 
   Future<void> _loadUserTasks() async {
     try {
-      final dbProvider = DatabaseProvider.of(context);
-      await dbProvider.ensureConnectionOpen();
-      final results = await dbProvider.connection.query(
-        'SELECT id, descripcion, completada, fecha_completada FROM tareas WHERE usuario_id = @usuario_id',
-        substitutionValues: {'usuario_id': widget.userData['id']},
-      );
-
-      setState(() {
-        _todoItems.clear();
-        _todoItems.addAll(results.map((row) => {
-              'id': row[0],
-              'descripcion': row[1],
-              'completada': row[2],
-              'fecha_completada': row[3], // Puede ser null
-            }));
-      });
+      final tasks = await apiService.getUserTasks(widget.userData['id']);
+      if (tasks != null) {
+        setState(() {
+          _todoItems.clear();
+          _todoItems.addAll(tasks.cast<Map<String, dynamic>>());
+        });
+      } else {
+        _showErrorSnackBar('Error al cargar tareas');
+      }
     } catch (e) {
       _showErrorSnackBar('Error al cargar tareas: $e');
     }
@@ -131,32 +58,22 @@ class _AdminPageState extends State<AdminPage> {
 
   void _addTodoItem(String task) {
     if (task.isNotEmpty) {
-      _saveTaskToDatabase(task);
+      _saveTaskToApi(task);
     }
   }
 
-  Future<void> _saveTaskToDatabase(String task) async {
+  Future<void> _saveTaskToApi(String task) async {
     try {
-      final dbProvider = DatabaseProvider.of(context);
-      await dbProvider.ensureConnectionOpen();
-      final result = await dbProvider.connection.query(
-        'INSERT INTO tareas (usuario_id, descripcion, completada) VALUES (@usuario_id, @descripcion, @completada) RETURNING id',
-        substitutionValues: {
-          'usuario_id': widget.userData['id'],
-          'descripcion': task,
-          'completada': false,
-        },
-      );
-      final newTaskId = result.first[0];
-      setState(() {
-        _todoItems.add({
-          'id': newTaskId,
-          'descripcion': task,
-          'completada': false,
-          'fecha_completada': null,
+      final newTask =
+          await apiService.createTask(widget.userData['id'], task);
+      if (newTask != null) {
+        setState(() {
+          _todoItems.add(newTask);
         });
-      });
-      _showSuccessSnackBar('Tarea guardada exitosamente');
+        _showSuccessSnackBar('Tarea guardada exitosamente');
+      } else {
+        _showErrorSnackBar('Error al guardar tarea');
+      }
     } catch (e) {
       _showErrorSnackBar('Error al guardar tarea: $e');
     }
@@ -165,22 +82,21 @@ class _AdminPageState extends State<AdminPage> {
   void _removeTodoItem(int index) {
     if (index >= 0 && index < _todoItems.length) {
       final taskId = _todoItems[index]['id'];
-      _deleteTaskFromDatabase(taskId, index);
+      _deleteTaskFromApi(taskId, index);
     }
   }
 
-  Future<void> _deleteTaskFromDatabase(int taskId, int index) async {
+  Future<void> _deleteTaskFromApi(int taskId, int index) async {
     try {
-      final dbProvider = DatabaseProvider.of(context);
-      await dbProvider.ensureConnectionOpen();
-      await dbProvider.connection.query(
-        'DELETE FROM tareas WHERE id = @id',
-        substitutionValues: {'id': taskId},
-      );
-      setState(() {
-        _todoItems.removeAt(index);
-      });
-      _showSuccessSnackBar('Tarea eliminada exitosamente');
+      final success = await apiService.deleteTask(taskId);
+      if (success) {
+        setState(() {
+          _todoItems.removeAt(index);
+        });
+        _showSuccessSnackBar('Tarea eliminada exitosamente');
+      } else {
+        _showErrorSnackBar('Error al eliminar tarea');
+      }
     } catch (e) {
       _showErrorSnackBar('Error al eliminar tarea: $e');
     }
@@ -189,40 +105,28 @@ class _AdminPageState extends State<AdminPage> {
   void _toggleTaskCompletion(int index) {
     if (index >= 0 && index < _todoItems.length) {
       final taskId = _todoItems[index]['id'];
-      final isCurrentlyCompleted = _todoItems[index]['completada'] as bool;
+      final isCurrentlyCompleted = _todoItems[index]['completada'] == 1;
       final newCompletionStatus = !isCurrentlyCompleted;
-      _updateTaskCompletionInDatabase(taskId, newCompletionStatus, index);
+      _updateTaskCompletionInApi(taskId, newCompletionStatus, index);
     }
   }
 
-  Future<void> _updateTaskCompletionInDatabase(
+  Future<void> _updateTaskCompletionInApi(
       int taskId, bool isCompleted, int index) async {
     try {
-      final dbProvider = DatabaseProvider.of(context);
-      await dbProvider.ensureConnectionOpen();
-      if (isCompleted) {
-        // Marcar tarea como completada y actualizar fecha_completada al timestamp actual
-        final result = await dbProvider.connection.query(
-          'UPDATE tareas SET completada = @completada, fecha_completada = NOW() WHERE id = @id RETURNING fecha_completada',
-          substitutionValues: {'completada': isCompleted, 'id': taskId},
-        );
-        final fechaCompletada = result.first[0];
-        setState(() {
-          _todoItems[index]['completada'] = isCompleted;
-          _todoItems[index]['fecha_completada'] = fechaCompletada;
-        });
+      final success = await apiService.updateTask(taskId, isCompleted);
+      if (success) {
+        // Volvemos a cargar la tarea actualizada desde la API
+        final updatedTask = await apiService.getTaskById(taskId);
+        if (updatedTask != null) {
+          setState(() {
+            _todoItems[index] = updatedTask;
+          });
+        }
+        _showSuccessSnackBar('Tarea actualizada exitosamente');
       } else {
-        // Marcar tarea como no completada y establecer fecha_completada a NULL
-        await dbProvider.connection.query(
-          'UPDATE tareas SET completada = @completada, fecha_completada = NULL WHERE id = @id',
-          substitutionValues: {'completada': isCompleted, 'id': taskId},
-        );
-        setState(() {
-          _todoItems[index]['completada'] = isCompleted;
-          _todoItems[index]['fecha_completada'] = null;
-        });
+        _showErrorSnackBar('Error al actualizar tarea');
       }
-      _showSuccessSnackBar('Tarea actualizada exitosamente');
     } catch (e) {
       _showErrorSnackBar('Error al actualizar tarea: $e');
     }
@@ -254,8 +158,17 @@ class _AdminPageState extends State<AdminPage> {
   }
 
   Widget _buildTodoItem(Map<String, dynamic> todoItem, int index) {
-    final isCompleted = todoItem['completada'] as bool;
-    final fechaCompletada = todoItem['fecha_completada'] as DateTime?;
+    final isCompleted = todoItem['completada'] == 1;
+    final fechaCompletada = todoItem['fecha_completada'];
+    String? formattedDate;
+
+    if (fechaCompletada != null) {
+      // Formatear la fecha para mostrarla adecuadamente
+      final dateTime = DateTime.parse(fechaCompletada);
+      formattedDate =
+          '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute}';
+    }
+
     return ListTile(
       title: Text(
         todoItem['descripcion'],
@@ -265,9 +178,9 @@ class _AdminPageState extends State<AdminPage> {
               isCompleted ? TextDecoration.lineThrough : TextDecoration.none,
         ),
       ),
-      subtitle: isCompleted && fechaCompletada != null
+      subtitle: isCompleted && formattedDate != null
           ? Text(
-              'Completada el ${fechaCompletada.toLocal().toString().split('.')[0]}',
+              'Completada el $formattedDate',
               style: const TextStyle(color: Colors.grey),
             )
           : null,
@@ -348,7 +261,7 @@ class _AdminPageState extends State<AdminPage> {
         backgroundColor: Colors.black,
         centerTitle: true,
         title: Text(
-          'Nivel: ${widget.userData['nivel']}',
+          'Usuario: ${widget.userData['username']}',
           style: const TextStyle(
             color: Colors.white,
           ),
@@ -402,33 +315,28 @@ class _LoginPageState extends State<LoginPage> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscureText = true;
+  final ApiService apiService = ApiService();
 
   Future<void> _login() async {
     final username = _usernameController.text;
     final password = _passwordController.text;
 
     try {
-      final dbProvider = DatabaseProvider.of(context);
-      await dbProvider.ensureConnectionOpen();
-      final results = await dbProvider.connection.query(
-        'SELECT * FROM usuarios WHERE username = @username AND password = @password',
-        substitutionValues: {
-          'username': username,
-          'password': password,
-        },
-      );
+      final userData = await apiService.login(username, password);
 
-      if (results.isNotEmpty) {
-        final user = results.first.toColumnMap();
-        if (user['nivel'] == 'admin') {
+      print('userData: $userData'); // Para depuración
+
+      if (userData != null) {
+        if (userData['nivel'] == 'admin') {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => AdminPage(userData: user),
+              builder: (context) => AdminPage(userData: userData),
             ),
           );
         } else {
           _showSuccessSnackBar('Inicio de sesión exitoso');
+          // Navegar a otra página si es necesario
         }
       } else {
         _showErrorSnackBar('Usuario o contraseña incorrectos');
@@ -488,7 +396,8 @@ class _LoginPageState extends State<LoginPage> {
                       hintText: 'Usuario',
                       hintStyle:
                           TextStyle(color: Colors.white.withOpacity(0.7)),
-                      prefixIcon: const Icon(Icons.person, color: Colors.white),
+                      prefixIcon:
+                          const Icon(Icons.person, color: Colors.white),
                       filled: true,
                       fillColor: Colors.white.withOpacity(0.1),
                       border: OutlineInputBorder(
@@ -508,7 +417,8 @@ class _LoginPageState extends State<LoginPage> {
                       hintText: 'Contraseña',
                       hintStyle:
                           TextStyle(color: Colors.white.withOpacity(0.7)),
-                      prefixIcon: const Icon(Icons.lock, color: Colors.white),
+                      prefixIcon:
+                          const Icon(Icons.lock, color: Colors.white),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscureText
