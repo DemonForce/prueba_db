@@ -179,7 +179,7 @@ class _AdminPageState extends State<AdminPage> {
       ),
       subtitle: isCompleted && formattedDate != null
           ? Text(
-              'Completada el $formattedDate',
+              '$formattedDate',
               style: const TextStyle(color: Colors.grey),
             )
           : null,
