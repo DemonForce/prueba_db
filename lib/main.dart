@@ -64,8 +64,7 @@ class _AdminPageState extends State<AdminPage> {
 
   Future<void> _saveTaskToApi(String task) async {
     try {
-      final newTask =
-          await apiService.createTask(widget.userData['id'], task);
+      final newTask = await apiService.createTask(widget.userData['id'], task);
       if (newTask != null) {
         setState(() {
           _todoItems.add(newTask);
@@ -164,7 +163,7 @@ class _AdminPageState extends State<AdminPage> {
 
     if (fechaCompletada != null) {
       // Formatear la fecha para mostrarla adecuadamente
-      final dateTime = DateTime.parse(fechaCompletada);
+      final dateTime = DateTime.parse(fechaCompletada).toLocal();
       formattedDate =
           '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute}';
     }
@@ -210,7 +209,7 @@ class _AdminPageState extends State<AdminPage> {
           String newTask = '';
           return Scaffold(
             appBar: AppBar(
-              backgroundColor: Colors.black,
+              backgroundColor: Color.fromARGB(255, 26, 28, 36), 
               iconTheme: const IconThemeData(
                 color: Colors.white,
               ),
@@ -245,7 +244,7 @@ class _AdminPageState extends State<AdminPage> {
                 _addTodoItem(newTask);
                 Navigator.pop(context);
               },
-              backgroundColor: Colors.black,
+              backgroundColor: Color.fromARGB(255, 26, 28, 36), 
               child: const Icon(Icons.check, color: Colors.white),
             ),
           );
@@ -258,7 +257,7 @@ class _AdminPageState extends State<AdminPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: Color.fromARGB(255, 26, 28, 36), 
         centerTitle: true,
         title: Text(
           'Usuario: ${widget.userData['username']}',
@@ -288,11 +287,10 @@ class _AdminPageState extends State<AdminPage> {
       floatingActionButton: FloatingActionButton(
         onPressed: _pushAddTodoScreen,
         tooltip: 'Agregar tarea',
-        backgroundColor: Colors.black,
+        backgroundColor: Color.fromARGB(255, 26, 28, 36), 
         shape: const CircleBorder(
           side: BorderSide(
-            color: Colors.white,
-            width: 3.0,
+            width: 1.0,
           ),
         ),
         child: const Icon(
@@ -374,7 +372,7 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          color: Color.fromARGB(255, 30, 31, 36), // Fondo negro
+          color: Color.fromARGB(255, 26, 28, 36), // Fondo negro
         ),
         child: SafeArea(
           child: Center(
@@ -396,8 +394,7 @@ class _LoginPageState extends State<LoginPage> {
                       hintText: 'Usuario',
                       hintStyle:
                           TextStyle(color: Colors.white.withOpacity(0.7)),
-                      prefixIcon:
-                          const Icon(Icons.person, color: Colors.white),
+                      prefixIcon: const Icon(Icons.person, color: Colors.white),
                       filled: true,
                       fillColor: Colors.white.withOpacity(0.1),
                       border: OutlineInputBorder(
@@ -417,8 +414,7 @@ class _LoginPageState extends State<LoginPage> {
                       hintText: 'Contraseña',
                       hintStyle:
                           TextStyle(color: Colors.white.withOpacity(0.7)),
-                      prefixIcon:
-                          const Icon(Icons.lock, color: Colors.white),
+                      prefixIcon: const Icon(Icons.lock, color: Colors.white),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscureText
