@@ -157,16 +157,16 @@ class _AdminPageState extends State<AdminPage> {
   }
 
   Widget _buildTodoItem(Map<String, dynamic> todoItem, int index) {
-    final isCompleted = todoItem['completada'] == 1;
-    final fechaCompletada = todoItem['fecha_completada'];
-    String? formattedDate;
+  final isCompleted = todoItem['completada'] == 1;
+  final fechaCompletada = todoItem['fecha_completada'];
+  String? formattedDate;
 
-    if (fechaCompletada != null) {
-      // Formatear la fecha para mostrarla adecuadamente
-      final dateTime = DateTime.parse(fechaCompletada).toLocal();
-      formattedDate =
-          '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute}';
-    }
+  if (fechaCompletada != null) {
+    // Asumiendo que fechaCompletada ya está en la zona horaria correcta
+    final dateTime = DateTime.parse(fechaCompletada);
+    formattedDate =
+        '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute}';
+  }
 
     return ListTile(
       title: Text(
