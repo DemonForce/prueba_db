@@ -247,6 +247,7 @@ class _AdminPageState extends State<AdminPage> {
               backgroundColor: Color.fromARGB(255, 26, 28, 36), 
               child: const Icon(Icons.check, color: Colors.white),
             ),
+            floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
           );
         },
       ),
@@ -298,6 +299,7 @@ class _AdminPageState extends State<AdminPage> {
           color: Colors.white,
         ),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 }
