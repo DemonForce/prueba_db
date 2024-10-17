@@ -260,7 +260,7 @@ class _AdminPageState extends State<AdminPage> {
         backgroundColor: Color.fromARGB(255, 26, 28, 36), 
         centerTitle: true,
         title: Text(
-          'Usuario: ${widget.userData['username']}',
+          '${widget.userData['nivel']}',
           style: const TextStyle(
             color: Colors.white,
           ),
