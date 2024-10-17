@@ -104,7 +104,7 @@ class _AdminPageState extends State<AdminPage> {
   void _toggleTaskCompletion(int index) {
     if (index >= 0 && index < _todoItems.length) {
       final taskId = _todoItems[index]['id'];
-      final isCurrentlyCompleted = _todoItems[index]['completada'] == 1;
+      final isCurrentlyCompleted = _todoItems[index]['completada'] == 1 || _todoItems[index]['completada'] == true;
       final newCompletionStatus = !isCurrentlyCompleted;
       _updateTaskCompletionInApi(taskId, newCompletionStatus, index);
     }
@@ -121,6 +121,8 @@ class _AdminPageState extends State<AdminPage> {
           setState(() {
             _todoItems[index] = updatedTask;
           });
+        } else {
+          _showErrorSnackBar('Error al obtener la tarea actualizada');
         }
         _showSuccessSnackBar('Tarea actualizada exitosamente');
       } else {
@@ -157,16 +159,16 @@ class _AdminPageState extends State<AdminPage> {
   }
 
   Widget _buildTodoItem(Map<String, dynamic> todoItem, int index) {
-  final isCompleted = todoItem['completada'] == 1;
-  final fechaCompletada = todoItem['fecha_completada'];
-  String? formattedDate;
+    final isCompleted = todoItem['completada'] == 1 || todoItem['completada'] == true;
+    final fechaCompletada = todoItem['fecha_completada'];
+    String? formattedDate;
 
-  if (fechaCompletada != null) {
-    // Asumiendo que fechaCompletada ya está en la zona horaria correcta
-    final dateTime = DateTime.parse(fechaCompletada);
-    formattedDate =
-        '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute}';
-  }
+    if (fechaCompletada != null) {
+      // Formatear la fecha para mostrarla adecuadamente
+      final dateTime = DateTime.parse(fechaCompletada);
+      formattedDate =
+          '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute}';
+    }
 
     return ListTile(
       title: Text(
@@ -179,14 +181,14 @@ class _AdminPageState extends State<AdminPage> {
       ),
       subtitle: isCompleted && formattedDate != null
           ? Text(
-              '$formattedDate',
+              'Completada el: $formattedDate',
               style: const TextStyle(color: Colors.grey),
             )
           : null,
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (!isCompleted) // Si la tarea no está completada, muestra el botón de eliminar
+          if (!isCompleted)
             IconButton(
               icon: const Icon(Icons.delete, color: Colors.white),
               onPressed: () => _removeTodoItem(index),
@@ -210,7 +212,7 @@ class _AdminPageState extends State<AdminPage> {
           String newTask = '';
           return Scaffold(
             appBar: AppBar(
-              backgroundColor: Color.fromARGB(255, 26, 28, 36),
+              backgroundColor: const Color.fromARGB(255, 26, 28, 36),
               iconTheme: const IconThemeData(
                 color: Colors.white,
               ),
@@ -245,7 +247,7 @@ class _AdminPageState extends State<AdminPage> {
                 _addTodoItem(newTask);
                 Navigator.pop(context);
               },
-              backgroundColor: Color.fromARGB(255, 26, 28, 36),
+              backgroundColor: const Color.fromARGB(255, 26, 28, 36),
               child: const Icon(Icons.check, color: Colors.white),
             ),
             floatingActionButtonLocation:
@@ -260,7 +262,7 @@ class _AdminPageState extends State<AdminPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Color.fromARGB(255, 26, 28, 36),
+        backgroundColor: const Color.fromARGB(255, 26, 28, 36),
         centerTitle: true,
         title: Text(
           '${widget.userData['nivel']}',
@@ -290,7 +292,7 @@ class _AdminPageState extends State<AdminPage> {
       floatingActionButton: FloatingActionButton(
         onPressed: _pushAddTodoScreen,
         tooltip: 'Agregar tarea',
-        backgroundColor: Color.fromARGB(255, 26, 28, 36),
+        backgroundColor: const Color.fromARGB(255, 26, 28, 36),
         shape: const CircleBorder(
           side: BorderSide(
             width: 1.0,
@@ -320,8 +322,8 @@ class _LoginPageState extends State<LoginPage> {
   final ApiService apiService = ApiService();
 
   Future<void> _login() async {
-    final username = _usernameController.text;
-    final password = _passwordController.text;
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text.trim();
 
     try {
       final userData = await apiService.login(username, password);
@@ -468,3 +470,4 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
+

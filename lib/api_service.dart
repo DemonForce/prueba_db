@@ -19,8 +19,9 @@ class ApiService {
     }
   }
 
+  // Corrección aquí: Actualizar la ruta para obtener todas las tareas de un usuario
   Future<List<dynamic>?> getUserTasks(int userId) async {
-    final response = await http.get(Uri.parse('$baseUrl/tasks/$userId'));
+    final response = await http.get(Uri.parse('$baseUrl/tasks/user/$userId'));
 
     if (response.statusCode == 200) {
       return json.decode(response.body);
@@ -48,6 +49,7 @@ class ApiService {
     }
   }
 
+  // Corrección aquí: Verificar y manejar correctamente el estado HTTP en updateTask
   Future<bool> updateTask(int taskId, bool completed) async {
     final response = await http.put(
       Uri.parse('$baseUrl/tasks/$taskId'),
@@ -55,16 +57,18 @@ class ApiService {
       body: json.encode({'completada': completed}),
     );
 
-    return response.statusCode == 200;
+    // Aceptamos tanto 200 como 204 como respuestas exitosas
+    return response.statusCode == 200 || response.statusCode == 204;
   }
 
   Future<bool> deleteTask(int taskId) async {
     final response = await http.delete(Uri.parse('$baseUrl/tasks/$taskId'));
 
-    return response.statusCode == 200;
+    // Aceptamos tanto 200 como 204 como respuestas exitosas
+    return response.statusCode == 200 || response.statusCode == 204;
   }
 
-  // Agrega el método getTaskById aquí
+  // Método getTaskById ya agregado correctamente
   Future<Map<String, dynamic>?> getTaskById(int taskId) async {
     final response = await http.get(Uri.parse('$baseUrl/tasks/task/$taskId'));
 
