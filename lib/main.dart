@@ -186,10 +186,11 @@ class _AdminPageState extends State<AdminPage> {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          IconButton(
-            icon: const Icon(Icons.delete, color: Colors.white),
-            onPressed: () => _removeTodoItem(index),
-          ),
+          if (!isCompleted) // Si la tarea no está completada, muestra el botón de eliminar
+            IconButton(
+              icon: const Icon(Icons.delete, color: Colors.white),
+              onPressed: () => _removeTodoItem(index),
+            ),
           IconButton(
             icon: Icon(
               isCompleted ? Icons.check_circle : Icons.circle_outlined,
@@ -209,7 +210,7 @@ class _AdminPageState extends State<AdminPage> {
           String newTask = '';
           return Scaffold(
             appBar: AppBar(
-              backgroundColor: Color.fromARGB(255, 26, 28, 36), 
+              backgroundColor: Color.fromARGB(255, 26, 28, 36),
               iconTheme: const IconThemeData(
                 color: Colors.white,
               ),
@@ -244,10 +245,11 @@ class _AdminPageState extends State<AdminPage> {
                 _addTodoItem(newTask);
                 Navigator.pop(context);
               },
-              backgroundColor: Color.fromARGB(255, 26, 28, 36), 
+              backgroundColor: Color.fromARGB(255, 26, 28, 36),
               child: const Icon(Icons.check, color: Colors.white),
             ),
-            floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+            floatingActionButtonLocation:
+                FloatingActionButtonLocation.centerFloat,
           );
         },
       ),
@@ -258,7 +260,7 @@ class _AdminPageState extends State<AdminPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Color.fromARGB(255, 26, 28, 36), 
+        backgroundColor: Color.fromARGB(255, 26, 28, 36),
         centerTitle: true,
         title: Text(
           '${widget.userData['nivel']}',
@@ -288,7 +290,7 @@ class _AdminPageState extends State<AdminPage> {
       floatingActionButton: FloatingActionButton(
         onPressed: _pushAddTodoScreen,
         tooltip: 'Agregar tarea',
-        backgroundColor: Color.fromARGB(255, 26, 28, 36), 
+        backgroundColor: Color.fromARGB(255, 26, 28, 36),
         shape: const CircleBorder(
           side: BorderSide(
             width: 1.0,
