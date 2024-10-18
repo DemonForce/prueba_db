@@ -104,7 +104,8 @@ class _AdminPageState extends State<AdminPage> {
   void _toggleTaskCompletion(int index) {
     if (index >= 0 && index < _todoItems.length) {
       final taskId = _todoItems[index]['id'];
-      final isCurrentlyCompleted = _todoItems[index]['completada'] == 1 || _todoItems[index]['completada'] == true;
+      final isCurrentlyCompleted = _todoItems[index]['completada'] == 1 ||
+          _todoItems[index]['completada'] == true;
       final newCompletionStatus = !isCurrentlyCompleted;
       _updateTaskCompletionInApi(taskId, newCompletionStatus, index);
     }
@@ -159,13 +160,13 @@ class _AdminPageState extends State<AdminPage> {
   }
 
   Widget _buildTodoItem(Map<String, dynamic> todoItem, int index) {
-    final isCompleted = todoItem['completada'] == 1 || todoItem['completada'] == true;
+    final isCompleted =
+        todoItem['completada'] == 1 || todoItem['completada'] == true;
     final fechaCompletada = todoItem['fecha_completada'];
     String? formattedDate;
 
     if (fechaCompletada != null) {
-      // Formatear la fecha para mostrarla adecuadamente
-      final dateTime = DateTime.parse(fechaCompletada);
+      final dateTime = DateTime.parse(fechaCompletada).toLocal();
       formattedDate =
           '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute}';
     }
@@ -470,4 +471,3 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
-
