@@ -15,6 +15,8 @@ class _AdminPageState extends State<AdminPage> {
   final List<Map<String, dynamic>> _todoItems = [];
   final ApiService apiService = ApiService();
 
+  bool _isFabVisible = true;
+
   @override
   void initState() {
     super.initState();
@@ -50,7 +52,8 @@ class _AdminPageState extends State<AdminPage> {
         setState(() {
           _todoItems.add(newTask);
         });
-        _showSnackBar('Tarea guardada exitosamente', Colors.green);
+        // Eliminamos el mensaje de éxito
+        // _showSnackBar('Tarea guardada exitosamente', Colors.green);
       } else {
         _showSnackBar('Error al guardar tarea', Colors.red);
       }
@@ -73,7 +76,8 @@ class _AdminPageState extends State<AdminPage> {
         setState(() {
           _todoItems.removeAt(index);
         });
-        _showSnackBar('Tarea eliminada exitosamente', Colors.green);
+        // Eliminamos el mensaje de éxito
+        // _showSnackBar('Tarea eliminada exitosamente', Colors.green);
       } else {
         _showSnackBar('Error al eliminar tarea', Colors.red);
       }
@@ -105,7 +109,8 @@ class _AdminPageState extends State<AdminPage> {
         } else {
           _showSnackBar('Error al obtener la tarea actualizada', Colors.red);
         }
-        _showSnackBar('Tarea actualizada exitosamente', Colors.green);
+        // Eliminamos el mensaje de éxito
+        // _showSnackBar('Tarea actualizada exitosamente', Colors.green);
       } else {
         _showSnackBar('Error al actualizar tarea', Colors.red);
       }
@@ -123,11 +128,29 @@ class _AdminPageState extends State<AdminPage> {
   }
 
   Widget _buildTodoList() {
-    return ListView.builder(
-      itemCount: _todoItems.length,
-      itemBuilder: (context, index) {
-        return _buildTodoItem(_todoItems[index], index);
+    return NotificationListener<ScrollNotification>(
+      onNotification: (scrollNotification) {
+        if (scrollNotification is ScrollStartNotification) {
+          if (_isFabVisible) {
+            setState(() {
+              _isFabVisible = false;
+            });
+          }
+        } else if (scrollNotification is ScrollEndNotification) {
+          if (!_isFabVisible) {
+            setState(() {
+              _isFabVisible = true;
+            });
+          }
+        }
+        return true;
       },
+      child: ListView.builder(
+        itemCount: _todoItems.length,
+        itemBuilder: (context, index) {
+          return _buildTodoItem(_todoItems[index], index);
+        },
+      ),
     );
   }
 
@@ -262,18 +285,22 @@ class _AdminPageState extends State<AdminPage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _pushAddTodoScreen,
-        tooltip: 'Agregar tarea',
-        backgroundColor: const Color.fromARGB(255, 26, 28, 36),
-        shape: const CircleBorder(
-          side: BorderSide(
-            width: 1.0,
+      floatingActionButton: AnimatedOpacity(
+        opacity: _isFabVisible ? 1.0 : 0.0,
+        duration: const Duration(milliseconds: 200),
+        child: FloatingActionButton(
+          onPressed: _isFabVisible ? _pushAddTodoScreen : null,
+          tooltip: 'Agregar tarea',
+          backgroundColor: const Color.fromARGB(255, 26, 28, 36),
+          shape: const CircleBorder(
+            side: BorderSide(
+              width: 1.0,
+            ),
           ),
-        ),
-        child: const Icon(
-          Icons.add,
-          color: Colors.white,
+          child: const Icon(
+            Icons.add,
+            color: Colors.white,
+          ),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
