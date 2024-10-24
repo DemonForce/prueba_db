@@ -1,0 +1,282 @@
+// pages/admin_page.dart
+import 'package:flutter/material.dart';
+import '../services/api_service.dart';
+
+class AdminPage extends StatefulWidget {
+  final Map<String, dynamic> userData;
+
+  const AdminPage({super.key, required this.userData});
+
+  @override
+  _AdminPageState createState() => _AdminPageState();
+}
+
+class _AdminPageState extends State<AdminPage> {
+  final List<Map<String, dynamic>> _todoItems = [];
+  final ApiService apiService = ApiService();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserTasks();
+  }
+
+  Future<void> _loadUserTasks() async {
+    try {
+      final tasks = await apiService.getUserTasks(widget.userData['id']);
+      if (tasks != null) {
+        setState(() {
+          _todoItems.clear();
+          _todoItems.addAll(tasks.cast<Map<String, dynamic>>());
+        });
+      } else {
+        _showSnackBar('Error al cargar tareas', Colors.red);
+      }
+    } catch (e) {
+      _showSnackBar('Error al cargar tareas', Colors.red);
+    }
+  }
+
+  void _addTodoItem(String task) {
+    if (task.isNotEmpty) {
+      _saveTaskToApi(task);
+    }
+  }
+
+  Future<void> _saveTaskToApi(String task) async {
+    try {
+      final newTask = await apiService.createTask(widget.userData['id'], task);
+      if (newTask != null) {
+        setState(() {
+          _todoItems.add(newTask);
+        });
+        _showSnackBar('Tarea guardada exitosamente', Colors.green);
+      } else {
+        _showSnackBar('Error al guardar tarea', Colors.red);
+      }
+    } catch (e) {
+      _showSnackBar('Error al guardar tarea', Colors.red);
+    }
+  }
+
+  void _removeTodoItem(int index) {
+    if (index >= 0 && index < _todoItems.length) {
+      final taskId = _todoItems[index]['id'];
+      _deleteTaskFromApi(taskId, index);
+    }
+  }
+
+  Future<void> _deleteTaskFromApi(int taskId, int index) async {
+    try {
+      final success = await apiService.deleteTask(taskId);
+      if (success) {
+        setState(() {
+          _todoItems.removeAt(index);
+        });
+        _showSnackBar('Tarea eliminada exitosamente', Colors.green);
+      } else {
+        _showSnackBar('Error al eliminar tarea', Colors.red);
+      }
+    } catch (e) {
+      _showSnackBar('Error al eliminar tarea', Colors.red);
+    }
+  }
+
+  void _toggleTaskCompletion(int index) {
+    if (index >= 0 && index < _todoItems.length) {
+      final taskId = _todoItems[index]['id'];
+      final isCurrentlyCompleted = _todoItems[index]['completada'] == 1 ||
+          _todoItems[index]['completada'] == true;
+      final newCompletionStatus = !isCurrentlyCompleted;
+      _updateTaskCompletionInApi(taskId, newCompletionStatus, index);
+    }
+  }
+
+  Future<void> _updateTaskCompletionInApi(
+      int taskId, bool isCompleted, int index) async {
+    try {
+      final success = await apiService.updateTask(taskId, isCompleted);
+      if (success) {
+        final updatedTask = await apiService.getTaskById(taskId);
+        if (updatedTask != null) {
+          setState(() {
+            _todoItems[index] = updatedTask;
+          });
+        } else {
+          _showSnackBar('Error al obtener la tarea actualizada', Colors.red);
+        }
+        _showSnackBar('Tarea actualizada exitosamente', Colors.green);
+      } else {
+        _showSnackBar('Error al actualizar tarea', Colors.red);
+      }
+    } catch (e) {
+      _showSnackBar('Error al actualizar tarea', Colors.red);
+    }
+  }
+
+  void _showSnackBar(String message, Color color) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: color),
+      );
+    }
+  }
+
+  Widget _buildTodoList() {
+    return ListView.builder(
+      itemCount: _todoItems.length,
+      itemBuilder: (context, index) {
+        return _buildTodoItem(_todoItems[index], index);
+      },
+    );
+  }
+
+  Widget _buildTodoItem(Map<String, dynamic> todoItem, int index) {
+    final isCompleted =
+        todoItem['completada'] == 1 || todoItem['completada'] == true;
+    final fechaCompletada = todoItem['fecha_completada'];
+    String? formattedDate;
+
+    if (fechaCompletada != null) {
+      final dateTime = DateTime.parse(fechaCompletada).toLocal();
+      formattedDate =
+          '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute}';
+    }
+
+    return ListTile(
+      title: Text(
+        todoItem['descripcion'],
+        style: TextStyle(
+          color: Colors.white,
+          decoration:
+              isCompleted ? TextDecoration.lineThrough : TextDecoration.none,
+        ),
+      ),
+      subtitle: isCompleted && formattedDate != null
+          ? Text(
+              'Completada el: $formattedDate',
+              style: const TextStyle(color: Colors.grey),
+            )
+          : null,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (!isCompleted)
+            IconButton(
+              icon: const Icon(Icons.delete, color: Colors.white),
+              onPressed: () => _removeTodoItem(index),
+            ),
+          IconButton(
+            icon: Icon(
+              isCompleted ? Icons.check_circle : Icons.circle_outlined,
+              color: Colors.white,
+            ),
+            onPressed: () => _toggleTaskCompletion(index),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _pushAddTodoScreen() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) {
+          String newTask = '';
+          return Scaffold(
+            appBar: AppBar(
+              backgroundColor: const Color.fromARGB(255, 26, 28, 36),
+              iconTheme: const IconThemeData(
+                color: Colors.white,
+              ),
+              title: const Text(
+                'Agregar nueva tarea',
+                style: TextStyle(
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            body: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: TextField(
+                autofocus: true,
+                onChanged: (val) {
+                  newTask = val;
+                },
+                decoration: const InputDecoration(
+                  hintText: 'Ingresa la nueva tarea',
+                  hintStyle: TextStyle(
+                    color: Colors.grey,
+                  ),
+                  contentPadding: EdgeInsets.all(16.0),
+                ),
+                style: const TextStyle(
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            floatingActionButton: FloatingActionButton(
+              onPressed: () {
+                _addTodoItem(newTask);
+                Navigator.pop(context);
+              },
+              backgroundColor: const Color.fromARGB(255, 26, 28, 36),
+              child: const Icon(Icons.check, color: Colors.white),
+            ),
+            floatingActionButtonLocation:
+                FloatingActionButtonLocation.centerFloat,
+          );
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color.fromARGB(255, 26, 28, 36),
+        centerTitle: true,
+        title: Text(
+          '${widget.userData['nivel']}',
+          style: const TextStyle(
+            color: Colors.white,
+          ),
+        ),
+      ),
+      body: Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Text(
+              'Lista de Tareas',
+              style: TextStyle(
+                fontSize: 24,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Expanded(
+            child: _buildTodoList(),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _pushAddTodoScreen,
+        tooltip: 'Agregar tarea',
+        backgroundColor: const Color.fromARGB(255, 26, 28, 36),
+        shape: const CircleBorder(
+          side: BorderSide(
+            width: 1.0,
+          ),
+        ),
+        child: const Icon(
+          Icons.add,
+          color: Colors.white,
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+    );
+  }
+}
