@@ -1,5 +1,7 @@
 // pages/admin_page.dart
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/api_service.dart';
 
 class AdminPage extends StatefulWidget {
@@ -14,6 +16,7 @@ class AdminPage extends StatefulWidget {
 class _AdminPageState extends State<AdminPage> {
   final List<Map<String, dynamic>> _todoItems = [];
   final ApiService apiService = ApiService();
+  final FlutterSecureStorage secureStorage = FlutterSecureStorage();
 
   bool _isFabVisible = true;
 
@@ -35,6 +38,7 @@ class _AdminPageState extends State<AdminPage> {
         _showSnackBar('Error al cargar tareas', Colors.red);
       }
     } catch (e) {
+      print('Error en _loadUserTasks: $e');
       _showSnackBar('Error al cargar tareas', Colors.red);
     }
   }
@@ -52,12 +56,11 @@ class _AdminPageState extends State<AdminPage> {
         setState(() {
           _todoItems.add(newTask);
         });
-        // Eliminamos el mensaje de éxito
-        // _showSnackBar('Tarea guardada exitosamente', Colors.green);
       } else {
         _showSnackBar('Error al guardar tarea', Colors.red);
       }
     } catch (e) {
+      print('Error en _saveTaskToApi: $e');
       _showSnackBar('Error al guardar tarea', Colors.red);
     }
   }
@@ -76,12 +79,11 @@ class _AdminPageState extends State<AdminPage> {
         setState(() {
           _todoItems.removeAt(index);
         });
-        // Eliminamos el mensaje de éxito
-        // _showSnackBar('Tarea eliminada exitosamente', Colors.green);
       } else {
         _showSnackBar('Error al eliminar tarea', Colors.red);
       }
     } catch (e) {
+      print('Error en _deleteTaskFromApi: $e');
       _showSnackBar('Error al eliminar tarea', Colors.red);
     }
   }
@@ -109,12 +111,11 @@ class _AdminPageState extends State<AdminPage> {
         } else {
           _showSnackBar('Error al obtener la tarea actualizada', Colors.red);
         }
-        // Eliminamos el mensaje de éxito
-        // _showSnackBar('Tarea actualizada exitosamente', Colors.green);
       } else {
         _showSnackBar('Error al actualizar tarea', Colors.red);
       }
     } catch (e) {
+      print('Error en _updateTaskCompletionInApi: $e');
       _showSnackBar('Error al actualizar tarea', Colors.red);
     }
   }
@@ -254,18 +255,33 @@ class _AdminPageState extends State<AdminPage> {
     );
   }
 
+  void _logout() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isLoggedIn', false);
+
+    // No eliminamos las credenciales para permitir el inicio de sesión biométrico posterior
+    // await secureStorage.delete(key: 'username');
+    // await secureStorage.delete(key: 'password');
+
+    Navigator.pushReplacementNamed(context, '/');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 26, 28, 36),
-        centerTitle: true,
         title: Text(
           '${widget.userData['nivel']}',
-          style: const TextStyle(
-            color: Colors.white,
-          ),
+          style: const TextStyle(color: Colors.white),
         ),
+        backgroundColor: const Color.fromARGB(255, 26, 28, 36),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white),
+            onPressed: _logout,
+          ),
+        ],
       ),
       body: Column(
         children: [

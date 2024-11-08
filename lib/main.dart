@@ -23,8 +23,13 @@ class MainApp extends StatelessWidget {
       routes: {
         '/': (context) => const LoginPage(),
         '/admin': (context) {
-          final userData = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-          return AdminPage(userData: userData);
+          final arguments = ModalRoute.of(context)?.settings.arguments;
+          if (arguments != null && arguments is Map<String, dynamic>) {
+            return AdminPage(userData: arguments);
+          } else {
+            // Si no hay argumentos, redirigir al login
+            return const LoginPage();
+          }
         },
         // Agrega más rutas si es necesario
       },
