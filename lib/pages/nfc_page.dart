@@ -1,7 +1,7 @@
-// pages/nfc_page.dart
 import 'package:flutter/material.dart';
 import 'package:nfc_manager/nfc_manager.dart';
-import 'dart:typed_data'; // Asegúrate de importar dart:typed_data
+import 'dart:typed_data';
+import '../services/api_service.dart'; // Importar el servicio de API
 
 class NfcPage extends StatefulWidget {
   const NfcPage({Key? key}) : super(key: key);
@@ -12,6 +12,7 @@ class NfcPage extends StatefulWidget {
 
 class _NfcPageState extends State<NfcPage> {
   String _nfcData = 'Acerca tu dispositivo a una etiqueta NFC';
+  final ApiService _apiService = ApiService(); // Instancia del servicio de API
 
   @override
   void initState() {
@@ -19,6 +20,7 @@ class _NfcPageState extends State<NfcPage> {
     _checkNfcAvailability();
   }
 
+  /// Verifica si el NFC está disponible en el dispositivo
   Future<void> _checkNfcAvailability() async {
     bool isAvailable = await NfcManager.instance.isAvailable();
     if (!isAvailable) {
@@ -28,6 +30,7 @@ class _NfcPageState extends State<NfcPage> {
     }
   }
 
+  /// Inicia la sesión NFC y maneja la lectura de etiquetas
   void _startNfcSession() {
     setState(() {
       _nfcData = 'Esperando una etiqueta NFC...';
@@ -37,8 +40,6 @@ class _NfcPageState extends State<NfcPage> {
       onDiscovered: (NfcTag tag) async {
         try {
           String data = '';
-
-          // Obtener el UID de la etiqueta NFC
           Uint8List? identifier;
 
           // Intentamos obtener el identificador de diferentes tecnologías
@@ -59,6 +60,14 @@ class _NfcPageState extends State<NfcPage> {
           if (identifier != null && identifier.isNotEmpty) {
             final uid = identifier.map((e) => e.toRadixString(16).padLeft(2, '0')).join(':').toUpperCase();
             data += 'UID: $uid';
+
+            // Intentar guardar el UID en el backend
+            final success = await _apiService.saveNfcUid(uid);
+            if (success) {
+              data += '\nUID almacenado correctamente.';
+            } else {
+              data += '\nNo se pudo guardar el UID (puede que ya exista).';
+            }
           } else {
             data += 'No se pudo obtener el UID de la etiqueta.';
           }
@@ -98,6 +107,7 @@ class _NfcPageState extends State<NfcPage> {
           child: Text(
             _nfcData,
             style: const TextStyle(fontSize: 16, color: Colors.white),
+            textAlign: TextAlign.center,
           ),
         ),
       ),
