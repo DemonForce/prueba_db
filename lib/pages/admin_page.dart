@@ -266,10 +266,20 @@ class _AdminPageState extends State<AdminPage> {
     Navigator.pushReplacementNamed(context, '/');
   }
 
+  // Agrega esta función para navegar a la página NFC
+  void _navigateToNfcPage() {
+    Navigator.pushNamed(context, '/nfc');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          // Agregamos el ícono NFC aquí
+          icon: const Icon(Icons.nfc, color: Colors.white),
+          onPressed: _navigateToNfcPage,
+        ),
         title: Text(
           '${widget.userData['nivel']}',
           style: const TextStyle(color: Colors.white),

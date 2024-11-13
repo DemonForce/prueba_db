@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'pages/login_page.dart';
 import 'pages/admin_page.dart';
+import 'pages/nfc_page.dart'; 
 
 void main() {
   runApp(const MainApp());
@@ -31,6 +32,7 @@ class MainApp extends StatelessWidget {
             return const LoginPage();
           }
         },
+        '/nfc': (context) => const NfcPage(), // Nueva ruta para la página NFC
         // Agrega más rutas si es necesario
       },
     );
